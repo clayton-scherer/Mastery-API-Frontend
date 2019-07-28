@@ -277,6 +277,57 @@ function () {
 
   return Api;
 }();
+},{}],"node_modules/os-browserify/browser.js":[function(require,module,exports) {
+exports.endianness = function () { return 'LE' };
+
+exports.hostname = function () {
+    if (typeof location !== 'undefined') {
+        return location.hostname
+    }
+    else return '';
+};
+
+exports.loadavg = function () { return [] };
+
+exports.uptime = function () { return 0 };
+
+exports.freemem = function () {
+    return Number.MAX_VALUE;
+};
+
+exports.totalmem = function () {
+    return Number.MAX_VALUE;
+};
+
+exports.cpus = function () { return [] };
+
+exports.type = function () { return 'Browser' };
+
+exports.release = function () {
+    if (typeof navigator !== 'undefined') {
+        return navigator.appVersion;
+    }
+    return '';
+};
+
+exports.networkInterfaces
+= exports.getNetworkInterfaces
+= function () { return {} };
+
+exports.arch = function () { return 'javascript' };
+
+exports.platform = function () { return 'browser' };
+
+exports.tmpdir = exports.tmpDir = function () {
+    return '/tmp';
+};
+
+exports.EOL = '\n';
+
+exports.homedir = function () {
+	return '/'
+};
+
 },{}],"src/public/javascripts/utils/components/components.js":[function(require,module,exports) {
 "use strict";
 
@@ -288,6 +339,8 @@ exports.default = void 0;
 var _Html = _interopRequireDefault(require("../Html/Html"));
 
 var _Api = _interopRequireDefault(require("../api/Api"));
+
+var _os = require("os");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -319,33 +372,164 @@ function () {
     key: "getWrapperDiv",
     value: function getWrapperDiv() {
       return (0, _Html.default)().create("div").addClass("wrapper");
-    } //   renderNavMenu() {
-    //     const navLinks = ["Home", "About", "Movies", "Actors", "Categories"];
-    //     const navMenu = Html()
-    //       .create("nav")
-    //       .addClass("nav-menu")
-    //       .addChild(
-    //         Html()
-    //           .create("ul")
-    //           .addClass("nav-menu__list")
-    //           .addChild(
-    //             navLinks.forEach(link => {
-    //               Html()
-    //                 .create("li")
-    //                 .addClass("nav-menu__list-item")
-    //                 .addChild("a")
-    //                 .addAttribute(href, `/${link}`);
-    //             })
-    //           )
-    //       );
-    //     return navMenu;
-    //   }
+    }
+  }, {
+    key: "renderNavMenu",
+    value: function renderNavMenu() {
+      var _this = this;
 
+      var navLinks = ["Categories", "Actors", "Movies"];
+      var navMenu = (0, _Html.default)().create("nav").addClass("nav-menu");
+      var navMenuList = (0, _Html.default)().create("ul").addClass("nav-menu__list");
+      navLinks.forEach(function (link) {
+        var navListItem = (0, _Html.default)().create("li").addClass("nav-menu__list-item").addChild((0, _Html.default)().create("a").addAttribute("href", "/".concat(link)).text("".concat(link)).click(function (event) {
+          event.preventDefault();
+
+          if (link === "Categories") {
+            _this.renderPageCategories();
+          }
+
+          if (link === "Actors") {
+            _this.renderPageActors();
+          }
+
+          if (link === "Movies") {
+            _this.renderPageMovies();
+          }
+        }));
+        navMenuList.addChild(navListItem);
+      });
+      navMenu.addChild(navMenuList);
+      return navMenu;
+    }
   }, {
     key: "renderMainHeader",
     value: function renderMainHeader() {
       var mainHeader = (0, _Html.default)().create("header").addClass("header").addChild((0, _Html.default)().create("h1").addClass("header-title").text("MoviFlix"));
       return mainHeader;
+    }
+  }, {
+    key: "renderContentBlock",
+    value: function renderContentBlock(requestedData) {
+      var _this2 = this;
+
+      var contentBlock = (0, _Html.default)().create("section").addClass("content-block");
+      var contentTitle = (0, _Html.default)().create("h2").addClass("content-title").text(requestedData);
+      var contentList = (0, _Html.default)().create("ul").addClass("content-list");
+      (0, _Api.default)().getRequest("http://localhost:3000/api/".concat(requestedData), function (responseCollection) {
+        responseCollection.forEach(function (item) {
+          var name;
+
+          if (requestedData === "actors") {
+            name = "".concat(item.firstName, " ").concat(item.lastName);
+          }
+
+          if (requestedData === "categories") {
+            name = "".concat(item.name);
+          }
+
+          if (requestedData === "movies") {
+            name = "".concat(item.title);
+          }
+
+          var contentBlockListItem = (0, _Html.default)().create("li").addClass("content-block__list-item").addChild((0, _Html.default)().create("a").addAttribute("href", "".concat(requestedData, "/").concat(item._id)).text(name).click(function (event) {
+            event.preventDefault();
+            var endpoint = event.target.getAttribute("href");
+            (0, _Api.default)().getRequest("http://localhost:3000/api/".concat(endpoint), function (data) {
+              var typeOfObject = endpoint.split("/")[0];
+
+              if (typeOfObject === "actors") {
+                _this2.renderPageActor(data);
+              }
+
+              if (typeOfObject === "categories") {
+                _this2.renderPageCategory(data);
+              }
+
+              if (typeOfObject === "movies") {
+                _this2.renderPageMovie(data);
+              }
+            });
+          }));
+          contentList.addChild(contentBlockListItem);
+        });
+      });
+      contentBlock.addChild(contentTitle);
+      contentBlock.addChild(contentList);
+      return contentBlock;
+    }
+  }, {
+    key: "renderPageActor",
+    value: function renderPageActor(data) {
+      var currentMainContentContainer = this.getWrapperDiv().select(".content").select(".container").select(".content-block");
+      var actorName = (0, _Html.default)().create("h3").addClass("content-title").text("".concat(data.firstName, " ").concat(data.lastName));
+      var actorPic = (0, _Html.default)().create("img").addClass("actor-picture").addAttribute("src", "".concat(data.image));
+      currentMainContentContainer.replace(actorName);
+      currentMainContentContainer.addChild(actorPic);
+    }
+  }, {
+    key: "renderPageCategory",
+    value: function renderPageCategory(data) {
+      var _this3 = this;
+
+      var currentMainContentContainer = this.getWrapperDiv().select(".content").select(".container").select(".content-block");
+      var categoryName = (0, _Html.default)().create("h3").addClass("content-title").text(data.name);
+      var movieList = (0, _Html.default)().create("ul").addClass("content-list");
+      data.movies.forEach(function (movie) {
+        var movieElement = (0, _Html.default)().create("li").addClass("content-list__item").addClass("content-list__item--movieCard").text(movie.title);
+        var moviePic = (0, _Html.default)().create("img").addClass("movie-picture").addAttribute("src", "".concat(movie.image)).text(movie.title).addAttribute("href", "/".concat(movie._id)).click(function (event) {
+          event.preventDefault();
+          var endpoint = event.target.getAttribute("href");
+          (0, _Api.default)().getRequest("http://localhost:3000/api/movies/".concat(endpoint), function (data) {
+            _this3.renderPageMovie(data);
+          });
+        });
+        movieElement.addChild(moviePic);
+        movieList.addChild(movieElement);
+      });
+      currentMainContentContainer.replace(categoryName);
+      currentMainContentContainer.addChild(movieList);
+    }
+  }, {
+    key: "renderPageMovie",
+    value: function renderPageMovie(data) {
+      var currentMainContentContainer = this.getWrapperDiv().select(".content").select(".container").select(".content-block");
+      var movieTitle = (0, _Html.default)().create("h2").addClass("content-title").text("".concat(data.title));
+      var movieDirector = (0, _Html.default)().create("h3").addClass("content-title").text("Directed By: ".concat(data.director));
+      var moviePicture = (0, _Html.default)().create("img").addClass("movie-picture").addClass("movie-picture--singleMovie").addAttribute("src", "".concat(data.image));
+      var rating = (0, _Html.default)().create("h4").addClass("movie-rating").text("Rotten Tomatoes Score: ".concat(data.rating, "%"));
+      currentMainContentContainer.replace(movieTitle);
+      currentMainContentContainer.addChild(movieDirector);
+      currentMainContentContainer.addChild(moviePicture);
+      currentMainContentContainer.addChild(rating);
+    }
+  }, {
+    key: "renderPageActors",
+    value: function renderPageActors() {
+      var currentMainContentContainer = this.getWrapperDiv().select(".content").select(".container");
+      currentMainContentContainer.replace(this.renderContentBlock("actors"));
+    }
+  }, {
+    key: "renderPageCategories",
+    value: function renderPageCategories() {
+      var currentMainContentContainer = this.getWrapperDiv().select(".content").select(".container");
+      currentMainContentContainer.replace(this.renderContentBlock("categories"));
+    }
+  }, {
+    key: "renderPageMovies",
+    value: function renderPageMovies() {
+      var currentMainContentContainer = this.getWrapperDiv().select(".content").select(".container");
+      currentMainContentContainer.replace(this.renderContentBlock("movies"));
+    }
+  }, {
+    key: "renderMainContent",
+    value: function renderMainContent(requestedData) {
+      var mainContent = (0, _Html.default)().create("main").addClass("content");
+      var containerDiv = (0, _Html.default)().create("div").addClass("container");
+      var contentBlock = this.renderContentBlock(requestedData);
+      containerDiv.addChild(contentBlock);
+      mainContent.addChild(containerDiv);
+      return mainContent;
     }
   }, {
     key: "renderMainFooter",
@@ -354,30 +538,19 @@ function () {
       var mainFooterCopy = (0, _Html.default)().create("small").addClass("copy").html("&copy; 2019 MoviFlix");
       mainFooter.addChild(mainFooterCopy);
       return mainFooter;
-    } //   renderContentBlock(requestedData) {
-    //     const contentBlock = Html()
-    //       .create("section")
-    //       .addClass("content-block");
-    //     const contentTitle = Html()
-    //       .create("h2")
-    //       .addClass("content-title");
-    //     const contentList = Html()
-    //       .create("ul")
-    //       .addClass("content-list");
-    //   }
-
+    }
   }, {
     key: "renderPageHome",
     value: function renderPageHome() {
       var app = this.getAppContext();
       var wrapperDiv = this.getWrapperDiv();
-      var mainHeader = this.renderMainHeader(); //  const navMenu = this.renderNavMenu();
-      //  const mainContent = this.renderContentBlock();
-
+      var mainHeader = this.renderMainHeader();
+      var mainContent = this.renderMainContent("categories");
+      var navMenu = this.renderNavMenu();
       var mainFooter = this.renderMainFooter();
-      wrapperDiv.addChild(mainHeader); //  wrapperDiv.addChild(navMenu);
-      //  wrapperDiv.addChild(mainContent);
-
+      wrapperDiv.addChild(mainHeader);
+      wrapperDiv.addChild(navMenu);
+      wrapperDiv.addChild(mainContent);
       wrapperDiv.addChild(mainFooter);
       app.replace(wrapperDiv);
     }
@@ -385,7 +558,7 @@ function () {
 
   return Components;
 }();
-},{"../Html/Html":"src/public/javascripts/utils/Html/Html.js","../api/Api":"src/public/javascripts/utils/api/Api.js"}],"src/public/javascripts/main.js":[function(require,module,exports) {
+},{"../Html/Html":"src/public/javascripts/utils/Html/Html.js","../api/Api":"src/public/javascripts/utils/api/Api.js","os":"node_modules/os-browserify/browser.js"}],"src/public/javascripts/main.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -436,7 +609,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54932" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "62584" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
